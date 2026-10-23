@@ -1,8 +1,8 @@
 
-import { createClient } from "../client";
+import { createClient } from "../server";
 
 export const getHomeArticles = async () => {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("products")
@@ -27,7 +27,7 @@ export const getHomeArticles = async () => {
     };
   }
 
-  const shuffledProducts = [...data].sort(
+  const shuffledProducts = [...(data ?? [])].sort(
     () => Math.random() - 0.5
   );
 
@@ -38,7 +38,7 @@ export const getHomeArticles = async () => {
 };
 
 export const getSingleArticle = async (slug: string) => {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   return await supabase
     .from("products")
