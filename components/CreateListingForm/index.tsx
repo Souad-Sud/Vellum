@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
@@ -6,10 +7,14 @@ import {
   type CategoriesType,
 } from "@/lib/supabase/queries/categories";
 import { createClient } from "@/lib/supabase/client";
+import { uploadProductImage } from "@/lib/supabase/upload-image";
 
-const BUCKET_NAME = "products";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
 
 const CreateListingForm = () => {
   const [categories, setCategories] = useState<CategoriesType>([]);
@@ -20,6 +25,7 @@ const CreateListingForm = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load product categories.
   useEffect(() => {
     const fetchCategories = async () => {
       const { data, error } = await getCategories();
@@ -35,6 +41,7 @@ const CreateListingForm = () => {
     fetchCategories();
   }, []);
 
+  // Create and clean up the local image preview.
   useEffect(() => {
     if (!image) {
       setImagePreview(null);
@@ -47,7 +54,10 @@ const CreateListingForm = () => {
     return () => URL.revokeObjectURL(previewUrl);
   }, [image]);
 
-  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+  // Validate the selected image.
+  const handleImageChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
 
     setError(null);
@@ -75,10 +85,12 @@ const CreateListingForm = () => {
     setImage(file);
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  // Create the listing and save its image URL.
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
 
-    // Capture the form and its data before any await.
     const form = event.currentTarget;
     const formData = new FormData(form);
 
@@ -88,12 +100,10 @@ const CreateListingForm = () => {
 
     const supabase = createClient();
 
-    let uploadedPath: string | null = null;
     let productCreated = false;
-    let mediaSaved = false;
 
     try {
-      // 1. Get the currently logged-in user.
+      // 1. Verify the logged-in user.
       const {
         data: { user },
         error: authError,
@@ -108,11 +118,17 @@ const CreateListingForm = () => {
       }
 
       // 2. Read and validate the form fields.
-      const name = String(formData.get("name") ?? "").trim();
+      const name = String(
+        formData.get("name") ?? ""
+      ).trim();
 
-      const description = String(formData.get("description") ?? "").trim();
+      const description = String(
+        formData.get("description") ?? ""
+      ).trim();
 
-      const rawPrice = String(formData.get("price") ?? "").trim();
+      const rawPrice = String(
+        formData.get("price") ?? ""
+      ).trim();
 
       const price = Number(rawPrice);
 
@@ -124,11 +140,15 @@ const CreateListingForm = () => {
         throw new Error("Please choose a category.");
       }
 
-      if (!rawPrice || !Number.isFinite(price) || price < 0) {
+      if (
+        !rawPrice ||
+        !Number.isFinite(price) ||
+        price < 0
+      ) {
         throw new Error("Please enter a valid price.");
       }
 
-      // 3. Create a unique slug from the product name.
+      // 3. Generate a unique product slug.
       const baseSlug =
         name
           .normalize("NFKD")
@@ -137,50 +157,32 @@ const CreateListingForm = () => {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "") || "product";
 
-      const slug = `${baseSlug}-${crypto.randomUUID().slice(0, 8)}`;
+      const slug = `${baseSlug}-${crypto
+        .randomUUID()
+        .slice(0, 8)}`;
 
-      // 4. Upload the selected image, if there is one.
+      // 4. Upload the image through the reusable helper.
+      // The helper uploads to your product images bucket.
       let imageUrl: string | null = null;
 
       if (image) {
-        const fileExtension = image.name.split(".").pop()?.toLowerCase();
-
-        const allowedExtensions = ["jpg", "jpeg", "png", "webp"];
-
-        if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-          throw new Error("Unsupported image file extension.");
-        }
-
-        uploadedPath = `${user.id}/${crypto.randomUUID()}.${fileExtension}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from(BUCKET_NAME)
-          .upload(uploadedPath, image, {
-            contentType: image.type,
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        imageUrl = supabase.storage.from(BUCKET_NAME).getPublicUrl(uploadedPath)
-          .data.publicUrl;
+        imageUrl = await uploadProductImage(image);
       }
 
-      // 5. Insert the product into the products table.
-      const { data: product, error: productError } = await supabase
-        .from("products")
-        .insert({
-          name,
-          description: description || null,
-          price,
-          slug,
-          category_id: categoryId,
-          seller_id: user.id,
-        })
-        .select("id")
-        .single();
+      // 5. Create the product database record.
+      const { data: product, error: productError } =
+        await supabase
+          .from("products")
+          .insert({
+            name,
+            description: description || null,
+            price,
+            slug,
+            category_id: categoryId,
+            seller_id: user.id,
+          })
+          .select("id")
+          .single();
 
       if (productError) {
         throw productError;
@@ -188,21 +190,21 @@ const CreateListingForm = () => {
 
       productCreated = true;
 
-      // 6. Save the image URL in the media table.
-      if (imageUrl && product && uploadedPath) {
-        const { error: mediaError } = await supabase.from("media").insert({
-          product_id: product.id,
-          media_url: imageUrl,
-          media_type: image!.type,
-        });
+      // 6. Save the uploaded image URL in the media table.
+      if (imageUrl && product && image) {
+        const { error: mediaError } = await supabase
+          .from("media")
+          .insert({
+            product_id: product.id,
+            media_url: imageUrl,
+            media_type: image.type,
+          });
 
         if (mediaError) {
           throw new Error(
-            `Your product was created, but saving its image record failed: ${mediaError.message}`,
+            `Your product was created, but saving its image record failed: ${mediaError.message}`
           );
         }
-
-        mediaSaved = true;
       }
 
       // 7. Reset the form after successful creation.
@@ -213,27 +215,15 @@ const CreateListingForm = () => {
     } catch (err) {
       console.error("Error creating listing:", err);
 
-      // Only remove the uploaded file if it was not saved
-      // successfully as a media record.
-      if (uploadedPath && !mediaSaved) {
-        const { error: cleanupError } = await supabase.storage
-          .from(BUCKET_NAME)
-          .remove([uploadedPath]);
-
-        if (cleanupError) {
-          console.error("Failed to clean up uploaded image:", cleanupError);
-        }
-      }
-
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong while creating your listing.",
+          : "Something went wrong while creating your listing."
       );
 
       if (productCreated) {
         console.error(
-          "The product exists, but a later operation failed. Check the product and media records in Supabase.",
+          "The product was created, but a later operation failed. Check your product and media records in Supabase."
         );
       }
     } finally {
@@ -347,7 +337,7 @@ const CreateListingForm = () => {
                 setImage(null);
 
                 const fileInput = document.getElementById(
-                  "image",
+                  "image"
                 ) as HTMLInputElement | null;
 
                 if (fileInput) {

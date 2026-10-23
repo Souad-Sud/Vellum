@@ -11,7 +11,7 @@ export const footerNavLinks = [
     links: [
       { label: "My account", href: "/profile" },
       { label: "My listings", href: "/my-articles" },
-      { label: "Reserved items", href: "/reserved-items" },
+      { label: "Reserved items", href: "/reserved" },
     ],
   },
 ];
