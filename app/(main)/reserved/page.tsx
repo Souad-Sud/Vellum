@@ -1,4 +1,3 @@
-
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
@@ -55,13 +54,12 @@ export default function ReservedPage() {
         return;
       }
 
-      const { data: reservations, error: reservationError } =
-        await supabase
-          .from("reservation")
-          .select("id, created_at, quantity, status, product_id")
-          .eq("buyer_id", user.id)
-          .in("status", ACTIVE_STATUSES)
-          .order("created_at", { ascending: false });
+      const { data: reservations, error: reservationError } = await supabase
+        .from("reservation")
+        .select("id, created_at, quantity, status, product_id")
+        .eq("buyer_id", user.id)
+        .in("status", ACTIVE_STATUSES)
+        .order("created_at", { ascending: false });
 
       if (reservationError) throw reservationError;
 
@@ -84,17 +82,14 @@ export default function ReservedPage() {
       if (productError) throw productError;
 
       const productMap = new Map(
-        ((products ?? []) as Article[]).map((product) => [
-          product.id,
-          product,
-        ])
+        ((products ?? []) as Article[]).map((product) => [product.id, product]),
       );
 
       setItems(
         rows.map((reservation) => ({
           ...reservation,
           article: productMap.get(reservation.product_id) ?? null,
-        }))
+        })),
       );
     } catch (err) {
       console.error("Could not load reserved articles:", err);
@@ -102,7 +97,7 @@ export default function ReservedPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not load your reservations."
+          : "Could not load your reservations.",
       );
     } finally {
       setLoading(false);
@@ -121,7 +116,7 @@ export default function ReservedPage() {
     }
 
     const confirmed = window.confirm(
-      "Cancel this reservation? The article will become available to reserve again."
+      "Cancel this reservation? The article will become available to reserve again.",
     );
 
     if (!confirmed) return;
@@ -156,7 +151,7 @@ export default function ReservedPage() {
 
       if (!updated) {
         throw new Error(
-          "The reservation could not be cancelled. It may already have changed."
+          "The reservation could not be cancelled. It may already have changed.",
         );
       }
 
@@ -164,7 +159,7 @@ export default function ReservedPage() {
       await loadReservations();
 
       setNotice(
-        "Reservation cancelled. The article is available to reserve again."
+        "Reservation cancelled. The article is available to reserve again.",
       );
     } catch (err) {
       console.error("Could not cancel reservation:", err);
@@ -172,7 +167,7 @@ export default function ReservedPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not cancel the reservation."
+          : "Could not cancel the reservation.",
       );
     } finally {
       setCancellingId(null);
@@ -182,9 +177,7 @@ export default function ReservedPage() {
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-4 py-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold">
-          My Reserved Articles
-        </h1>
+        <h1 className="text-3xl font-semibold">My Reserved Articles</h1>
 
         <Link
           href="/homepage"
@@ -227,16 +220,14 @@ export default function ReservedPage() {
 
       {!loading && !error && items.length === 0 && (
         <div className="rounded-xl border p-10 text-center">
-          <h2 className="text-xl font-medium">
-            No reserved articles
-          </h2>
+          <h2 className="text-xl font-medium">No reserved articles</h2>
 
           <p className="mt-2 text-gray-500">
             Articles you reserve will appear here.
           </p>
 
           <Link
-            href="/"
+            href="/homepage"
             className="mt-6 inline-block rounded-full bg-black px-6 py-3 text-white hover:bg-gray-800"
           >
             Explore articles
@@ -249,8 +240,7 @@ export default function ReservedPage() {
           {items.map((item) => {
             const article = item.article;
             const imageUrl = article?.media?.[0]?.media_url;
-            const canCancel =
-              (item.status ?? "").toLowerCase() === "pending";
+            const canCancel = (item.status ?? "").toLowerCase() === "pending";
             const isCancelling = cancellingId === item.id;
 
             return (
@@ -268,9 +258,7 @@ export default function ReservedPage() {
                       className="h-full w-full object-contain"
                     />
                   ) : (
-                    <p className="text-gray-500">
-                      No image available
-                    </p>
+                    <p className="text-gray-500">No image available</p>
                   )}
 
                   {canCancel ? (
@@ -306,8 +294,7 @@ export default function ReservedPage() {
                   </p>
 
                   <p className="mt-1 text-sm text-gray-600">
-                    Reserved on{" "}
-                    {new Date(item.created_at).toLocaleDateString()}
+                    Reserved on {new Date(item.created_at).toLocaleDateString()}
                   </p>
 
                   {article?.slug && (
