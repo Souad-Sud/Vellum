@@ -1,6 +1,7 @@
 
 "use client";
 
+import { Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { HomeArticlesType } from "@/lib/supabase/queries/articles";
@@ -26,16 +27,21 @@ export const HomeArticles = ({
   const [isSeller, setIsSeller] = useState(false);
   const [roleLoaded, setRoleLoaded] = useState(false);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Reservation state
   const [reservedIds, setReservedIds] = useState<Set<string>>(
     () => new Set()
   );
   const [myReservedProductIds, setMyReservedProductIds] = useState<
     Set<string>
   >(() => new Set());
-
   const [loadingIds, setLoadingIds] = useState<Set<string>>(
     () => new Set()
   );
+
+  // Review state
   const [reviewsByProduct, setReviewsByProduct] = useState<
     Record<string, ProductReview[]>
   >({});
@@ -48,6 +54,7 @@ export const HomeArticles = ({
 
   const [error, setError] = useState<string | null>(null);
 
+  // Check the logged-in user and role.
   useEffect(() => {
     let mounted = true;
 
@@ -100,6 +107,7 @@ export const HomeArticles = ({
     };
   }, [supabase]);
 
+  // Load active reservations for product cards.
   const fetchReservations = useCallback(async () => {
     const { data, error: queryError } = await supabase
       .from("reservation")
@@ -112,17 +120,18 @@ export const HomeArticles = ({
 
     const rows = (data ?? []) as Reservation[];
 
-    setReservedIds(
-      new Set(
-        rows
-          .filter((item) =>
-            ACTIVE_STATUSES.includes((item.status ?? "").toLowerCase())
-          )
-          .map((item) => item.product_id)
+    const activeIds = rows
+      .filter((item) =>
+        ACTIVE_STATUSES.includes(
+          (item.status ?? "").toLowerCase()
+        )
       )
-    );
+      .map((item) => item.product_id);
+
+    setReservedIds(new Set(activeIds));
   }, [supabase]);
 
+  // Load reservations belonging to the current buyer.
   const fetchMyReservations = useCallback(async () => {
     if (!currentUserId || isSeller) {
       setMyReservedProductIds(new Set());
@@ -136,7 +145,10 @@ export const HomeArticles = ({
       .in("status", ACTIVE_STATUSES);
 
     if (queryError) {
-      console.error("Could not fetch your reservations:", queryError.message);
+      console.error(
+        "Could not fetch your reservations:",
+        queryError.message
+      );
       return;
     }
 
@@ -145,6 +157,7 @@ export const HomeArticles = ({
     );
   }, [supabase, currentUserId, isSeller]);
 
+  // Load reviews from the existing rating table.
   const fetchReviews = useCallback(async () => {
     const { data, error: queryError } = await supabase
       .from("rating")
@@ -168,12 +181,14 @@ export const HomeArticles = ({
     setReviewsByProduct(grouped);
   }, [supabase]);
 
+  // Load data when the component mounts or the user changes.
   useEffect(() => {
     void fetchReservations();
     void fetchMyReservations();
     void fetchReviews();
   }, [fetchReservations, fetchMyReservations, fetchReviews]);
 
+  // Refresh reservation information when the database changes.
   useEffect(() => {
     const channel = supabase
       .channel("reservation-changes")
@@ -196,6 +211,14 @@ export const HomeArticles = ({
     };
   }, [supabase, fetchReservations, fetchMyReservations]);
 
+  // Search by product name, ignoring letter case and surrounding spaces.
+  const filteredArticles = articles.filter((article) =>
+    article.name
+      .toLowerCase()
+      .includes(searchQuery.trim().toLowerCase())
+  );
+
+  // Reserve a product. Sellers cannot reserve products.
   const reserveArticle = async (productId: string) => {
     if (
       !roleLoaded ||
@@ -230,6 +253,7 @@ export const HomeArticles = ({
         return;
       }
 
+      // Check whether the product already has an active reservation.
       const { data: existing, error: checkError } = await supabase
         .from("reservation")
         .select("id")
@@ -276,6 +300,7 @@ export const HomeArticles = ({
     }
   };
 
+  // Buyers can review only products they have actively reserved.
   const submitReview = async (productId: string) => {
     if (!roleLoaded) return;
 
@@ -323,6 +348,7 @@ export const HomeArticles = ({
         return;
       }
 
+      // Prevent duplicate reviews by the same buyer.
       const { data: existing, error: existingError } = await supabase
         .from("rating")
         .select("product_id")
@@ -389,87 +415,136 @@ export const HomeArticles = ({
         </div>
       )}
 
-      <div className="mx-auto grid w-full max-w-[2000px] grid-cols-1 justify-items-center gap-6 px-2 sm:grid-cols-2 sm:px-3 lg:grid-cols-3 lg:gap-7 xl:grid-cols-4 2xl:gap-8">
-        {articles.map((article) => {
-          const productReviews = reviewsByProduct[article.id] ?? [];
+      {/* Search bar */}
+      <div className="mx-auto mb-20 w-full max-w-xl px-2">
+        <label htmlFor="article-search"
+          className="mb-2 block font-cormorant text-lg text-neutral-700"
+        >
+          Search articles
+        </label>
 
-          const averageRating =
-            productReviews.length > 0
-              ? productReviews.reduce(
-                  (sum, review) => sum + Number(review.rating),
-                  0
-                ) / productReviews.length
-              : 0;
+        <div className="relative">
+          <Search
+            size={20}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
+          />
 
-          const reviewDraft = reviewDrafts[article.id] ?? {
-            rating: 5,
-            comment: "",
-          };
+          <input
+            id="article-search"
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search by article name..."
+            className="w-full rounded-full border border-neutral-300 bg-white py-3 pl-11 pr-5 text-base outline-none transition focus:border-amber-700 focus:ring-2 focus:ring-amber-100"
+          />
+        </div>
 
-          const alreadyReviewed = productReviews.some(
-            (review) => review.buyer_id === currentUserId
-          );
-
-          const canEdit =
-            roleLoaded &&
-            isSeller &&
-            currentUserId !== null &&
-            article.seller_id === currentUserId;
-
-          const canReview =
-            roleLoaded &&
-            currentUserId !== null &&
-            !isSeller &&
-            myReservedProductIds.has(article.id) &&
-            !alreadyReviewed;
-
-          return (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              isReserved={reservedIds.has(article.id)}
-              isLoading={loadingIds.has(article.id)}
-              canEdit={canEdit}
-              isSeller={isSeller}
-              roleLoaded={roleLoaded}
-              currentUserId={currentUserId}
-              productReviews={productReviews}
-              averageRating={averageRating}
-              reviewDraft={reviewDraft}
-              isReviewLoading={reviewLoadingIds.has(article.id)}
-              canReview={canReview}
-              alreadyReviewed={alreadyReviewed}
-              hasReservedProduct={myReservedProductIds.has(article.id)}
-              onReserve={() => void reserveArticle(article.id)}
-              onReviewSubmit={() => void submitReview(article.id)}
-              onRatingChange={(rating) =>
-                setReviewDrafts((previous) => ({
-                  ...previous,
-                  [article.id]: {
-                    ...(previous[article.id] ?? {
-                      rating: 5,
-                      comment: "",
-                    }),
-                    rating,
-                  },
-                }))
-              }
-              onCommentChange={(comment) =>
-                setReviewDrafts((previous) => ({
-                  ...previous,
-                  [article.id]: {
-                    ...(previous[article.id] ?? {
-                      rating: 5,
-                      comment: "",
-                    }),
-                    comment,
-                  },
-                }))
-              }
-            />
-          );
-        })}
+        {searchQuery.trim() && (
+          <p className="mt-2 text-sm text-neutral-500">
+            {filteredArticles.length}{" "}
+            {filteredArticles.length === 1 ? "article" : "articles"} found
+          </p>
+        )}
       </div>
+
+      {/* Article cards */}
+      {filteredArticles.length > 0 ? (
+        <div className="mx-auto grid w-full max-w-[2000px] grid-cols-1 justify-items-center gap-6 px-2 sm:grid-cols-2 sm:px-3 lg:grid-cols-3 lg:gap-7 xl:grid-cols-4 2xl:gap-8">
+          {filteredArticles.map((article) => {
+            const productReviews = reviewsByProduct[article.id] ?? [];
+
+            const averageRating =
+              productReviews.length > 0
+                ? productReviews.reduce(
+                    (sum, review) => sum + Number(review.rating),
+                    0
+                  ) / productReviews.length
+                : 0;
+
+            const reviewDraft = reviewDrafts[article.id] ?? {
+              rating: 5,
+              comment: "",
+            };
+
+            const alreadyReviewed = productReviews.some(
+              (review) => review.buyer_id === currentUserId
+            );
+
+            const canEdit =
+              roleLoaded &&
+              isSeller &&
+              currentUserId !== null &&
+              article.seller_id === currentUserId;
+
+            const canReview =
+              roleLoaded &&
+              currentUserId !== null &&
+              !isSeller &&
+              myReservedProductIds.has(article.id) &&
+              !alreadyReviewed;
+
+            return (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                isReserved={reservedIds.has(article.id)}
+                isLoading={loadingIds.has(article.id)}
+                canEdit={canEdit}
+                isSeller={isSeller}
+                roleLoaded={roleLoaded}
+                currentUserId={currentUserId}
+                productReviews={productReviews}
+                averageRating={averageRating}
+                reviewDraft={reviewDraft}
+                isReviewLoading={reviewLoadingIds.has(article.id)}
+                canReview={canReview}
+                alreadyReviewed={alreadyReviewed}
+                hasReservedProduct={myReservedProductIds.has(article.id)}
+                onReserve={() => void reserveArticle(article.id)}
+                onReviewSubmit={() => void submitReview(article.id)}
+                onRatingChange={(rating) =>
+                  setReviewDrafts((previous) => ({
+                    ...previous,
+                    [article.id]: {
+                      ...(previous[article.id] ?? {
+                        rating: 5,
+                        comment: "",
+                      }),
+                      rating,
+                    },
+                  }))
+                }
+                onCommentChange={(comment) =>
+                  setReviewDrafts((previous) => ({
+                    ...previous,
+                    [article.id]: {
+                      ...(previous[article.id] ?? {
+                        rating: 5,
+                        comment: "",
+                      }),
+                      comment,
+                    },
+                  }))
+                }
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <div className="py-12 text-center text-neutral-500">
+          <p className="text-lg">No articles found.</p>
+          <p className="mt-2 text-sm">Try another article name.</p>
+
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="mt-4 underline underline-offset-4 hover:text-amber-700"
+          >
+            Clear search
+          </button>
+        </div>
+      )}
     </div>
   );
 };
