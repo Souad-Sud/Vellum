@@ -1,9 +1,10 @@
-
 import { getSingleArticle } from "@/lib/supabase/queries/articles";
+import { getPublicSellerProfile } from "@/lib/supabase/queries/users";
 import ErrorMessage from "@/components/ErrorMessage";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ProfileIdentity from "@/components/Profile/ProfileIdentity";
 
 export default async function SingleArticles({
   params,
@@ -16,7 +17,9 @@ export default async function SingleArticles({
   if (error) {
     return (
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
-        <ErrorMessage message={error.message} />
+        <ErrorMessage
+          message={typeof error === "string" ? error : error.message}
+        />
       </main>
     );
   }
@@ -25,16 +28,25 @@ export default async function SingleArticles({
     notFound();
   }
 
+  // Fetch the seller's public profile.
+  const sellerProfile = data.seller_id
+    ? await getPublicSellerProfile(data.seller_id)
+    : null;
+
+  console.log("Public seller profile:", sellerProfile);
+
+  // Use only the public fields returned by the query.
+  const sellerName = sellerProfile?.username?.trim() || "Seller";
+  const sellerRole = sellerProfile?.role?.trim() || "Seller";
+
   const imageUrl =
     data.media?.find(
       (media) =>
-        media.media_type?.toLowerCase() === "image" &&
-        Boolean(media.media_url)
+        media.media_type?.toLowerCase() === "image" && Boolean(media.media_url),
     )?.media_url ??
     data.media?.find((media) => Boolean(media.media_url))?.media_url;
 
-  const price =
-    data.price == null ? null : Number(data.price);
+  const price = data.price == null ? null : Number(data.price);
 
   return (
     <main className="min-h-screen bg-[#faf8f4] font-cormorant text-neutral-800">
@@ -49,16 +61,13 @@ export default async function SingleArticles({
           >
             Home
           </Link>
-
           <span aria-hidden="true">/</span>
-
-          <span className="text-xl text-neutral-800">
-            {data.name}
-          </span>
+          <span className="text-xl text-neutral-800">{data.name}</span>
         </nav>
       </div>
 
       <section className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 pb-16 sm:px-6 sm:pb-20 md:gap-12 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-10 lg:pb-24">
+        {/* Product image */}
         <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden bg-[#f0ece5] sm:min-h-[450px] md:min-h-[540px] lg:min-h-[620px]">
           {imageUrl ? (
             <Image
@@ -79,6 +88,7 @@ export default async function SingleArticles({
           )}
         </div>
 
+        {/* Product details */}
         <div className="flex flex-col items-start py-2 sm:py-6 lg:py-12">
           <p className="mb-4 text-xs font-medium uppercase tracking-[0.25em] text-neutral-500 sm:text-sm">
             Discover the collection
@@ -89,9 +99,7 @@ export default async function SingleArticles({
           </h1>
 
           {price !== null && Number.isFinite(price) && (
-            <p className="mt-5 text-2xl sm:text-3xl">
-              {price.toFixed(2)} kr
-            </p>
+            <p className="mt-5 text-2xl sm:text-3xl">{price.toFixed(2)} kr</p>
           )}
 
           <div className="my-7 h-px w-16 bg-neutral-400 sm:my-8" />
@@ -116,6 +124,36 @@ export default async function SingleArticles({
           <p className="mt-6 text-sm tracking-wide text-neutral-500">
             Thoughtfully chosen. Beautifully presented.
           </p>
+
+          {/* Seller profile */}
+          <section className="mt-10 w-full border-t border-[#E8DED2] pt-6">
+            <p className="mb-4 text-xs font-medium uppercase tracking-[0.2em] text-neutral-500">
+              About the seller
+            </p>
+
+            {sellerProfile ? (
+              <>
+                <ProfileIdentity
+                  displayName={sellerName}
+                  role={sellerRole}
+                  imageUrl={sellerProfile.image_url_profile}
+                />
+
+                {data.seller_id && (
+                  <Link
+                    href={`/contact/${data.seller_id}?productId=${data.id}`}
+                    className="mt-5 inline-flex min-h-12 items-center justify-center border border-neutral-800 px-6 py-3 text-sm uppercase tracking-[0.12em] transition-colors hover:bg-neutral-800 hover:text-white"
+                  >
+                    Contact seller
+                  </Link>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-neutral-500">
+                Seller information is unavailable.
+              </p>
+            )}
+          </section>
         </div>
       </section>
     </main>

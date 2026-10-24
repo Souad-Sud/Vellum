@@ -1,9 +1,7 @@
 
 import { Logo } from "../Logo";
-import {
-  navigationLinks,
-  type UserRole,
-} from "@/data/navigationLinks";
+import { navigationLinks } from "@/data/navigationLinks";
+import type { UserRole } from "@/types/navbarLinks";
 import { getCategories } from "@/lib/supabase/queries/categories";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -12,7 +10,6 @@ import { MobileNavigation } from "../MobileNavigation";
 
 const NavigationBar = async () => {
   const { error } = await getCategories();
-
   const supabase = await createClient();
 
   const {
@@ -23,8 +20,8 @@ const NavigationBar = async () => {
     console.error("Error fetching categories:", error);
   }
 
-  // Fetch the authenticated user's role
   let role: UserRole | null = null;
+  let unreadCount = 0;
 
   if (user) {
     const { data: profile, error: profileError } = await supabase
@@ -41,9 +38,22 @@ const NavigationBar = async () => {
     ) {
       role = profile.role;
     }
+
+    // Count unread messages received by the current user.
+    const { count, error: unreadError } = await supabase
+      .from("seller_messages")
+      .select("id", { count: "exact", head: true })
+      .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+      .neq("sender_id", user.id)
+      .is("read_at", null);
+
+    if (unreadError) {
+      console.error("Error fetching unread messages:", unreadError);
+    } else {
+      unreadCount = count ?? 0;
+    }
   }
 
-  // Filter navigation links according to the user's role
   const visibleLinks = navigationLinks.filter((link) => {
     if (!link.roles) {
       return true;
@@ -51,6 +61,14 @@ const NavigationBar = async () => {
 
     return role !== null && link.roles.includes(role);
   });
+
+  // Pass the unread count to mobile navigation as well.
+  const mobileLinks = visibleLinks.map((link) => ({
+    ...link,
+    ...(link.href === "/seller/messages"
+      ? { unreadCount }
+      : {}),
+  }));
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/90 backdrop-blur-md">
@@ -66,9 +84,16 @@ const NavigationBar = async () => {
             <li key={link.href}>
               <Link
                 href={link.href}
-                className={`${link.className} whitespace-nowrap`}
+                className={`${link.className} whitespace-nowrap inline-flex items-center gap-2`}
               >
                 {link.label}
+
+                {link.href === "/seller/messages" &&
+                  unreadCount > 0 && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold leading-none text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
               </Link>
             </li>
           ))}
@@ -78,8 +103,8 @@ const NavigationBar = async () => {
         {user && (
           <div className="flex shrink-0 items-center gap-3">
             {role && (
-              <span className="rounded-full border border-[#DED4C7] bg-[#F7F3ED] px-3 py-1 text-sm font-medium capitalize text-[#8B5E4A]">
-                {role}
+              <span className="rounded-full border border-[#DED4C7] bg-[#F7F3ED] px-3 py-1 text-s font-medium text-[#8B5E4A]">
+                You are a {role === "seller" ? "Seller" : "Buyer"}
               </span>
             )}
 
@@ -89,7 +114,7 @@ const NavigationBar = async () => {
 
         {/* Mobile navigation */}
         <div className="md:hidden">
-          <MobileNavigation links={visibleLinks} />
+          <MobileNavigation links={mobileLinks} />
         </div>
       </div>
     </nav>

@@ -1,11 +1,4 @@
-export type UserRole = "buyer" | "seller";
-
-type NavigationLink = {
-  href: string;
-  label: string;
-  className: string;
-  roles?: UserRole[];
-};
+import { NavigationLink } from "@/types/navbarLinks";
 
 export const navigationLinks: NavigationLink[] = [
   {
@@ -19,6 +12,7 @@ export const navigationLinks: NavigationLink[] = [
     label: "Account",
     className: "transition-colors hover:text-neutral-950",
   },
+
   {
     href: "/listings/new",
     label: "New listing",
@@ -32,11 +26,17 @@ export const navigationLinks: NavigationLink[] = [
     className: "transition-colors hover:text-neutral-950",
   },
   {
-    href: "/my-articles",
-    label: "My Articles",
+    href: "/my-products",
+    label: "My products",
     className: "transition-colors hover:text-neutral-950",
     roles: ["seller"],
   },
+{
+  href: "/seller/messages",
+  label: "Messages",
+  className: "transition-colors hover:text-neutral-950",
+  roles: ["seller"],
+},
 ];
 
 export const slugNavigationLinks = [
