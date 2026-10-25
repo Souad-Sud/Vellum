@@ -73,7 +73,7 @@ export default async function SellerMessagesPage() {
                   href={`/contact/${user.id}?productId=${encodeURIComponent(
                     item.product_id
                   )}&buyerId=${encodeURIComponent(item.buyer_id)}`}
-                  className={`block border bg-white p-5 hover:bg-[#f5f0e8] ${
+                  className={`block border bg-white p-7 hover:bg-[#f5f0e8] ${
                     isUnread
                       ? "border-[#8B5E4A]"
                       : "border-[#E8DED2]"
@@ -95,7 +95,7 @@ export default async function SellerMessagesPage() {
                     {senderLabel}:
                   </p>
 
-                  <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+                  <p className="mt-1 whitespace-pre-wrap break-words text-2xl">
                     {item.message}
                   </p>
 

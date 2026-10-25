@@ -8,6 +8,7 @@ type NavigationLink = {
   href: string;
   label: string;
   className: string;
+  unreadCount?: number;
 };
 
 type MobileNavigationProps = {
@@ -19,11 +20,15 @@ export const MobileNavigation = ({
 }: MobileNavigationProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const messagePaths = ["/seller/messages", "/buyer/message"];
+
   return (
     <div className="relative">
       <button
         type="button"
-        aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+        aria-label={
+          isOpen ? "Close navigation menu" : "Open navigation menu"
+        }
         aria-expanded={isOpen}
         aria-controls="mobile-navigation-menu"
         onClick={() => setIsOpen((open) => !open)}
@@ -60,17 +65,31 @@ export const MobileNavigation = ({
           className="absolute right-0 top-full mt-3 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-neutral-200 bg-white p-3 shadow-xl"
         >
           <ul className="flex flex-col gap-1 font-fira text-neutral-700">
-            {links.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`block rounded-lg px-4 py-3 hover:bg-neutral-100 ${link.className}`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
+            {links.map((link) => {
+              const showUnread =
+                messagePaths.includes(link.href) &&
+                (link.unreadCount ?? 0) > 0;
+
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center justify-between gap-3 rounded-lg px-4 py-3 hover:bg-neutral-100 ${link.className}`}
+                  >
+                    <span>{link.label}</span>
+
+                    {showUnread && (
+                      <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold leading-none text-white">
+                        {(link.unreadCount ?? 0) > 99
+                          ? "99+"
+                          : link.unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

@@ -1,3 +1,4 @@
+
 import { NavigationLink } from "@/types/navbarLinks";
 
 export const navigationLinks: NavigationLink[] = [
@@ -12,7 +13,6 @@ export const navigationLinks: NavigationLink[] = [
     label: "Account",
     className: "transition-colors hover:text-neutral-950",
   },
-
   {
     href: "/listings/new",
     label: "New listing",
@@ -31,12 +31,18 @@ export const navigationLinks: NavigationLink[] = [
     className: "transition-colors hover:text-neutral-950",
     roles: ["seller"],
   },
-{
-  href: "/seller/messages",
-  label: "Messages",
-  className: "transition-colors hover:text-neutral-950",
-  roles: ["seller"],
-},
+  {
+    href: "/seller/messages",
+    label: "Messages",
+    className: "transition-colors hover:text-neutral-950",
+    roles: ["seller"],
+  },
+  {
+    href: "/buyer/messages",
+    label: "Messages",
+    className: "transition-colors hover:text-neutral-950",
+    roles: ["buyer"],
+  },
 ];
 
 export const slugNavigationLinks = [

@@ -39,41 +39,42 @@ const NavigationBar = async () => {
       role = profile.role;
     }
 
-    // Count unread messages received by the current user.
-    const { count, error: unreadError } = await supabase
-      .from("seller_messages")
-      .select("id", { count: "exact", head: true })
-      .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-      .neq("sender_id", user.id)
-      .is("read_at", null);
+    // Count unread messages received by this user.
+    if (role === "buyer" || role === "seller") {
+      const recipientColumn =
+        role === "buyer" ? "buyer_id" : "seller_id";
 
-    if (unreadError) {
-      console.error("Error fetching unread messages:", unreadError);
-    } else {
-      unreadCount = count ?? 0;
+      const { count, error: unreadError } = await supabase
+        .from("seller_messages")
+        .select("id", { count: "exact", head: true })
+        .eq(recipientColumn, user.id)
+        .neq("sender_id", user.id)
+        .is("read_at", null);
+
+      if (unreadError) {
+        console.error("Error fetching unread messages:", unreadError);
+      } else {
+        unreadCount = count ?? 0;
+      }
     }
   }
 
   const visibleLinks = navigationLinks.filter((link) => {
-    if (!link.roles) {
-      return true;
-    }
+    if (!link.roles) return true;
 
     return role !== null && link.roles.includes(role);
   });
 
-  // Pass the unread count to mobile navigation as well.
+  const messagePaths = ["/seller/messages", "/buyer/messages"];
+
   const mobileLinks = visibleLinks.map((link) => ({
     ...link,
-    ...(link.href === "/seller/messages"
-      ? { unreadCount }
-      : {}),
+    ...(messagePaths.includes(link.href) ? { unreadCount } : {}),
   }));
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 md:min-h-20 lg:px-10">
-        {/* Logo */}
         <div className="shrink-0">
           <Logo link={true} />
         </div>
@@ -84,11 +85,11 @@ const NavigationBar = async () => {
             <li key={link.href}>
               <Link
                 href={link.href}
-                className={`${link.className} whitespace-nowrap inline-flex items-center gap-2`}
+                className={`${link.className} inline-flex items-center gap-2 whitespace-nowrap`}
               >
                 {link.label}
 
-                {link.href === "/seller/messages" &&
+                {messagePaths.includes(link.href) &&
                   unreadCount > 0 && (
                     <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold leading-none text-white">
                       {unreadCount > 99 ? "99+" : unreadCount}
@@ -103,7 +104,7 @@ const NavigationBar = async () => {
         {user && (
           <div className="flex shrink-0 items-center gap-3">
             {role && (
-              <span className="rounded-full border border-[#DED4C7] bg-[#F7F3ED] px-3 py-1 text-s font-medium text-[#8B5E4A]">
+              <span className="rounded-full border border-[#DED4C7] bg-[#F7F3ED] px-3 py-1 text-sm font-medium text-[#8B5E4A]">
                 You are a {role === "seller" ? "Seller" : "Buyer"}
               </span>
             )}

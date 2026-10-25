@@ -27,12 +27,17 @@ export async function sendConversationMessage(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/login");
   }
 
   // Only the buyer or seller can participate.
   if (user.id !== sellerId && user.id !== buyerId) {
     throw new Error("You are not part of this conversation.");
+  }
+
+  // A user cannot message themselves.
+  if (sellerId === buyerId) {
+    throw new Error("You cannot message yourself.");
   }
 
   // Verify that the product belongs to this seller.
@@ -43,10 +48,11 @@ export async function sendConversationMessage(formData: FormData) {
     .maybeSingle();
 
   if (productError || !product || product.seller_id !== sellerId) {
+    console.error("Product verification failed:", productError?.message);
     throw new Error("Invalid product.");
   }
 
-  // Verify that the conversation exists.
+  // Check whether this buyer/product conversation already exists.
   const { data: existingMessage, error: conversationError } =
     await supabase
       .from("seller_messages")
@@ -65,29 +71,61 @@ export async function sendConversationMessage(formData: FormData) {
     throw new Error("Could not load the conversation.");
   }
 
-  if (!existingMessage) {
-    throw new Error("Conversation not found.");
+  // Sellers may reply only to conversations already started by a buyer.
+  if (!existingMessage && user.id === sellerId) {
+    throw new Error(
+      "This conversation does not exist yet. The buyer must message you first."
+    );
+  }
+
+  // Get the buyer's profile to label the conversation's first message.
+  const { data: buyerProfile, error: buyerProfileError } = await supabase
+    .from("users")
+    .select("username")
+    .eq("id", buyerId)
+    .maybeSingle();
+
+  if (buyerProfileError || !buyerProfile) {
+    console.error(
+      "Buyer profile lookup failed:",
+      buyerProfileError?.message
+    );
+    throw new Error("Could not find the buyer's profile.");
   }
 
   // Get the sender's username.
-  const { data: profile } = await supabase
+  const { data: senderProfile, error: senderProfileError } = await supabase
     .from("users")
     .select("username")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (senderProfileError) {
+    console.error(
+      "Sender profile lookup failed:",
+      senderProfileError.message
+    );
+    throw new Error("Could not load your profile.");
+  }
+
   const senderName =
-    profile?.username?.trim() ||
+    senderProfile?.username?.trim() ||
     (user.id === sellerId ? "Seller" : "Buyer");
 
-  // Insert the message.
+  const buyerName =
+    existingMessage?.buyer_name ||
+    buyerProfile.username?.trim() ||
+    "Buyer";
+
+  // Insert the message. This also starts a conversation
+  // when the buyer sends the very first message.
   const { error: insertError } = await supabase
     .from("seller_messages")
     .insert({
       buyer_id: buyerId,
       seller_id: sellerId,
       product_id: productId,
-      buyer_name: existingMessage.buyer_name,
+      buyer_name: buyerName,
       sender_id: user.id,
       sender_name: senderName,
       message,

@@ -25,7 +25,7 @@ export default async function ContactSellerPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth/login");
   }
 
   const isSeller = user.id === sellerId;
