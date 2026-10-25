@@ -1,5 +1,7 @@
 
 export type Profile = {
+  id?: string;
+  email?: string | null;
   username?: string | null;
   address?: string | null;
   city?: string | null;
@@ -8,7 +10,7 @@ export type Profile = {
   date_of_birth?: string | null;
   role?: string | null;
   description?: string | null;
-  profile_image?: string | null;
+  image_url_profile?: string | null;
 };
 
 export type ProfileFormState = {

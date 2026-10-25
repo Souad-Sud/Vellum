@@ -1,5 +1,6 @@
+"use client";
 
-type Props = {
+type ProfileSubmitButtonProps = {
   mode: "create" | "edit";
   pending: boolean;
   disabled?: boolean;
@@ -9,20 +10,18 @@ export default function ProfileSubmitButton({
   mode,
   pending,
   disabled = false,
-}: Props) {
+}: ProfileSubmitButtonProps) {
   return (
     <button
       type="submit"
       disabled={pending || disabled}
-      className="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+      className="mt-6 w-full rounded-full bg-[#A4715B] px-6 py-3 font-medium text-white transition-colors hover:bg-[#B85F43] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending
-        ? mode === "create"
-          ? "Creating account..."
-          : "Saving changes..."
-        : mode === "create"
-          ? "Create account"
-          : "Save changes"}
+        ? "Saving..."
+        : mode === "edit"
+          ? "Save Changes"
+          : "Create Account"}
     </button>
   );
 }

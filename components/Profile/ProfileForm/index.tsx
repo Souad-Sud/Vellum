@@ -1,12 +1,9 @@
-
 "use client";
-
 import Link from "next/link";
-import type {
-  ProfileFormProps,
-} from "@/types/profile";
+import type { ProfileFormProps } from "@/types/profile";
 import ProfileImageField from "../ProfileImageField";
 import ProfileInputField from "../ProfileInputField";
+import ProfileSubmitButton from "../ProfileSubmittedButton";
 
 export default function ProfileForm({
   mode,
@@ -43,11 +40,16 @@ export default function ProfileForm({
           {state.message}
         </p>
       )}
+<ProfileImageField
+  mode={mode}
+  initialImage={profile?.image_url_profile}
+/>
 
-      <ProfileImageField
-        mode={mode}
-        initialImage={profile?.profile_image}
-      />
+{state?.fieldErrors?.profile_image && (
+  <p role="alert" className="mb-4 text-sm text-red-600">
+    {state.fieldErrors.profile_image[0]}
+  </p>
+)}
 
       <ProfileInputField
         label="Username"
@@ -128,6 +130,7 @@ export default function ProfileForm({
         required
         defaultValue={profile?.date_of_birth?.slice(0, 10) ?? ""}
       />
+      <ProfileSubmitButton mode={mode} pending={pending} />
     </form>
   );
 }
