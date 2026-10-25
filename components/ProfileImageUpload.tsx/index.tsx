@@ -1,22 +1,12 @@
-
 "use client";
 
-import {
-  useEffect,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const BUCKET_NAME = "profile-images";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 type ProfileImageUploadProps = {
   currentImageUrl?: string | null;
@@ -44,9 +34,7 @@ export default function ProfileImageUpload({
     return () => URL.revokeObjectURL(previewUrl);
   }, [image, savedImageUrl]);
 
-  const handleImageChange = (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     setError(null);
@@ -74,9 +62,7 @@ export default function ProfileImageUpload({
     setImage(file);
   };
 
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!image) {
@@ -117,8 +103,7 @@ export default function ProfileImageUpload({
       }
 
       // Store the image inside this user's folder.
-      uploadedPath =
-        `${user.id}/${crypto.randomUUID()}.${extension}`;
+      uploadedPath = `${user.id}/${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_NAME)
@@ -172,9 +157,7 @@ export default function ProfileImageUpload({
       onSubmit={handleSubmit}
       className="w-full min-w-0 rounded-2xl bg-cream p-4 shadow-sm sm:p-6"
     >
-      <h2 className="mb-4 text-lg font-semibold sm:text-xl">
-        Profile picture
-      </h2>
+      <h2 className="mb-4 text-lg font-semibold sm:text-xl">Profile picture</h2>
 
       <div className="flex flex-col items-center gap-4 sm:flex-row">
         {/* Image preview */}

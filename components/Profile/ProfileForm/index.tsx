@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import type { ProfileFormProps } from "@/types/profile";
 import ProfileImageField from "../ProfileImageField";
 import ProfileInputField from "../ProfileInputField";

@@ -6,18 +6,12 @@ import editProfile from "@/app/actions/edit-profile-action";
 import type { Profile } from "@/types/profile";
 import ProfileForm from "../../ProfileForm";
 
-
 type EditProfileButtonProps = {
   profile: Profile;
 };
 
-export default function EditProfileButton({
-  profile,
-}: EditProfileButtonProps) {
-  const [state, formAction, pending] = useActionState(
-    editProfile,
-    null
-  );
+export default function EditProfileButton({ profile }: EditProfileButtonProps) {
+  const [state, formAction, pending] = useActionState(editProfile, null);
 
   const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
