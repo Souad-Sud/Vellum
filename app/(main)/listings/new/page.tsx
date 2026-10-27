@@ -1,6 +1,9 @@
 import CreateListingForm from "@/components/CreateListingForm";
+import { requireUser } from "@/lib/supabase/require-user";
 
-const NewListingPage = () => {
+const NewListingPage = async () => {
+    await requireUser();
+  
     return(
         <main className="mx-auto max-w-2xl px-6 py-12">
             <h1 className="mt-30 mb-10 font-cormorant text-5xl">Create newListing</h1>

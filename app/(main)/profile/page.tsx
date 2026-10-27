@@ -1,30 +1,20 @@
+
 import { Logo } from "@/components/Logo";
 import ProfileDetails from "@/components/Profile/ProfileDetails";
 import ProfileHeader from "@/components/Profile/ProfileHeader";
 import ProfileIdentity from "@/components/Profile/ProfileIdentity";
 import { getProfile } from "@/lib/supabase/queries/users";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/require-user";
 import {
   getDisplayName,
   getDisplayRole,
   getProfileFields,
 } from "@/utils/profileUtils";
-import { redirect } from "next/navigation";
 import { DeleteProfileButton } from "@/components/Profile/ProfileAction/DeleteProfileButton";
 import EditProfileButton from "@/components/Profile/ProfileAction/EditProfileButton";
 
-
 export default async function ProfilePage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    redirect("/login");
-  }
+  const { user } = await requireUser();
 
   const profile = await getProfile(user.id);
 
@@ -57,6 +47,7 @@ export default async function ProfilePage() {
       <div className="mx-auto max-w-5xl">
         <div className="flex justify-between">
           <ProfileHeader />
+
           <div className="flex flex-col items-center justify-center gap-4">
             <EditProfileButton profile={profile} />
             <DeleteProfileButton />
@@ -85,7 +76,10 @@ export default async function ProfilePage() {
             imageUrl={profile.image_url_profile}
           />
 
-          <ProfileDetails fields={fields} description={profile.description} />
+          <ProfileDetails
+            fields={fields}
+            description={profile.description}
+          />
         </section>
       </div>
     </main>
