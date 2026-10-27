@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -11,6 +10,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { Fira_Sans } from "next/font/google";
+import DeleteProductButton from "../Products/DeleteProductButton";
 
 import type {
   HomeArticle,
@@ -97,9 +97,7 @@ export default function ArticleCard({
             }`}
           />
         ) : (
-          <p className="text-sm text-neutral-500">
-            No image available
-          </p>
+          <p className="text-sm text-neutral-500">No image available</p>
         )}
       </Link>
 
@@ -117,14 +115,20 @@ export default function ArticleCard({
         </p>
 
         {canEdit && (
-          <Link
-            href={`/articles/${article.slug}/edit`}
-            aria-label={`Edit ${article.name}`}
-            className="mt-3 inline-flex w-fit items-center gap-2 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium transition hover:bg-white"
-          >
-            <Pencil size={16} />
-            Edit article
-          </Link>
+          <div className="flex items-center justify-center gap-1">
+            <div>
+              <Link
+                href={`/my-products/${article.id}/edit`}
+                className="mt-3 inline-flex w-fit items-center gap-2 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium transition hover:bg-white"
+              >
+                <Pencil size={16} />
+                Edit article
+              </Link>
+            </div>
+            <div>
+              <DeleteProductButton productId={article.id} />
+            </div>
+          </div>
         )}
 
         <div className="mt-4 rounded-lg bg-white/80 p-3">
@@ -135,9 +139,7 @@ export default function ArticleCard({
                   key={index}
                   size={17}
                   fill={
-                    index < Math.round(averageRating)
-                      ? "currentColor"
-                      : "none"
+                    index < Math.round(averageRating) ? "currentColor" : "none"
                   }
                 />
               ))}
@@ -174,9 +176,7 @@ export default function ArticleCard({
                           key={starIndex}
                           size={15}
                           fill={
-                            starIndex < item.rating
-                              ? "currentColor"
-                              : "none"
+                            starIndex < item.rating ? "currentColor" : "none"
                           }
                         />
                       ))}
@@ -218,9 +218,7 @@ export default function ArticleCard({
                     Your review
                     <textarea
                       value={reviewDraft.comment}
-                      onChange={(event) =>
-                        onCommentChange(event.target.value)
-                      }
+                      onChange={(event) => onCommentChange(event.target.value)}
                       required
                       maxLength={2000}
                       rows={3}
@@ -291,16 +289,11 @@ export default function ArticleCard({
               ) : isReserved ? (
                 <>
                   <Check size={22} />
-                  <span className="text-sm font-semibold">
-                    Reserved
-                  </span>
+                  <span className="text-sm font-semibold">Reserved</span>
                 </>
               ) : (
                 <>
-                  <ShoppingCartPlus
-                    size={24}
-                    className="text-amber-600"
-                  />
+                  <ShoppingCartPlus size={24} className="text-amber-600" />
                   <span className="text-sm">Reserve</span>
                 </>
               )}

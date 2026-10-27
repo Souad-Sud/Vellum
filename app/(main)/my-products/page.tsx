@@ -60,7 +60,7 @@ export default async function MyArticlesPage() {
                 )}
 
                 <h2 className="font-semibold mb-5">{article.name}</h2>
-                <hr/>
+                <hr />
                 <p>{article.description}</p>
 
                 <p className="mt-8 font-medium">Price: {article.price}</p>
