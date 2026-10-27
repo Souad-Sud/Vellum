@@ -21,13 +21,12 @@ export default async function EditProductPage({
     redirect("/login");
   }
 
-  const { data: product, error } = await supabase
-    .from("products")
-    .select("id, name, description, price")
-    .eq("id", id)
-    .eq("seller_id", user.id)
-    .maybeSingle();
-
+const { data: product, error } = await supabase
+  .from("products")
+  .select("id, name, description, price, category_id")
+  .eq("id", id)
+  .eq("seller_id", user.id)
+  .maybeSingle();
   if (error) {
     throw new Error(error.message);
   }
